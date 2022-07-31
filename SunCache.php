@@ -100,79 +100,55 @@ class SunCache
      * @param boolean $cacheSystem
      * @param array $cacheParams
      */
-    public function __construct($cacheSystem = true, $cacheParams = null)
-    {
-        set_exception_handler(function ($exception)
-        {
+    public function __construct($cacheSystem = true, $cacheParams = null) {
+        set_exception_handler(function ($exception) {
             echo '<b>[SunCache] Exception:</b> ' . $exception->getMessage();
         });
         $this->cacheSystem = $cacheSystem;
-        if ($this->cacheSystem == true)
-        { // if cache system enabled
-            if (is_array($cacheParams))
-            { // cache files using parameters in the array
-                foreach ($cacheParams as $key => $value)
-                {
+        if ($this->cacheSystem == true) { // if cache system enabled
+            if (is_array($cacheParams)) { // cache files using parameters in the array
+                foreach ($cacheParams as $key => $value) {
                     $this->cacheParams[$key] = $value;
-                    if (isset($key) && !is_null($value))
-                    {
+                    if (isset($key) && !is_null($value)) {
                         $this->$key = $value;
-                    }
-                    else
-                    {
+                    } else {
                         $this->$key = $this->cacheParams[$key];
                     }
                 }
             }
-            if (is_array($this->excludeFiles) && count($this->excludeFiles) > 0)
-            {
+            if (is_array($this->excludeFiles) && count($this->excludeFiles) > 0) {
                 $activePage = explode('/', $_SERVER['SCRIPT_FILENAME']); // get the active page
-                foreach ($this->excludeFiles as $key => $value)
-                {
-                    if (in_array(end($activePage) , $this->excludeFiles))
-                    {
+                foreach ($this->excludeFiles as $key => $value) {
+                    if (in_array(end($activePage), $this->excludeFiles)) {
                         $this->willCache = false; // exclude the active page if in the array
                         break;
                     }
                 }
             }
-            if ($this->willCache == true)
-            { // if the active page will cache
-                if (!file_exists(dirname(__FILE__) . '/' . $this->cacheDir))
-                {
+            if ($this->willCache == true) { // if the active page will cache
+                if (!file_exists(dirname(__FILE__) . '/' . $this->cacheDir)) {
                     mkdir(dirname(__FILE__) . '/' . $this->cacheDir, 0777); // create directory if not exists
-                    
                 }
-                if ($this->showTime)
-                { // if load time will show on the bottom of the page (hidden)
+                if ($this->showTime) { // if load time will show on the bottom of the page (hidden)
                     list($time[1], $time[0]) = explode(' ', microtime());
                     $this->startTime = $time[1] + $time[0];
                 }
-                if ($this->sefUrl == true)
-                { // if website uses sef url
+                if ($this->sefUrl == true) { // if website uses sef url
                     $extension = '.html';
-                }
-                else
-                {
+                } else {
                     $extension = '.php';
                 }
                 $file = basename($_SERVER['REQUEST_URI'], $extension);
-                $this->cacheFile = dirname(__FILE__) . '/' . $this->cacheDir . '/' . $file . '_' . substr(md5($_SERVER['REQUEST_URI']) , 0, 6) . '.' . $this->fileExtension; // define the cache file
-                if (time() - $this->storageTime < @filemtime($this->cacheFile))
-                { // if the storage time has not expired
+                $this->cacheFile = dirname(__FILE__) . '/' . $this->cacheDir . '/' . $file . '_' . substr(md5($_SERVER['REQUEST_URI']), 0, 6) . '.' . $this->fileExtension; // define the cache file
+                if (time() - $this->storageTime < @filemtime($this->cacheFile)) { // if the storage time has not expired
                     readfile($this->cacheFile); // read cached file
                     $this->cacheStatus = true; // page cached
                     die();
-                }
-                else
-                { // if the storage time has expired
-                    if (file_exists($this->cacheFile))
-                    { // if cache file exists
+                } else { // if the storage time has expired
+                    if (file_exists($this->cacheFile)) { // if cache file exists
                         unlink($this->cacheFile); // delete cached file
-                        
                     }
                     ob_start(); // start caching
-                    
                 }
             }
         }
@@ -181,35 +157,23 @@ class SunCache
     /**
      * Finish Caching
      */
-    public function __destruct()
-    {
-        if ($this->cacheSystem == true)
-        { // if cache system enabled
-            if ($this->willCache == true)
-            { // if page will cache
-                if ($this->cacheStatus == false)
-                { // if page not cached before
-                    if ($this->contentMinify)
-                    { // if request to minify page
+    public function __destruct() {
+        if ($this->cacheSystem == true) { // if cache system enabled
+            if ($this->willCache == true) { // if page will cache
+                if ($this->cacheStatus == false) { // if page not cached before
+                    if ($this->contentMinify) { // if request to minify page
                         $this->writeCache($this->minify(ob_get_contents())); // minify content and write into the cache file
-                        
-                    }
-                    else
-                    {
+                    } else {
                         $this->writeCache(ob_get_contents()); // write content into the cache file
-                        
                     }
                 }
-                if ($this->showTime)
-                { // if request to show time (bottom of the cached file, hidden)
+                if ($this->showTime) { // if request to show time (bottom of the cached file, hidden)
                     list($time[1], $time[0]) = explode(' ', microtime());
                     $finish = $time[1] + $time[0];
-                    $duration = number_format(($finish - $this->startTime) , 6);
+                    $duration = number_format(($finish - $this->startTime), 6);
                     echo "<!-- Load Duration: {$duration} s. -->"; // add description
-                    
                 }
                 ob_end_flush(); // finish caching
-                
             }
         }
     }
@@ -220,8 +184,7 @@ class SunCache
      * @param string $content
      * @return string
      */
-    private function minify($content = null)
-    {
+    private function minify($content = null) {
         $replace = array(
             '/\>[^\S ]+/s' => '>',
             '/[^\S ]+\</s' => '<',
@@ -236,9 +199,9 @@ class SunCache
             '/\)[\r\n\t ]?{[\r\n\t ]+/s' => '){',
             '/,[\r\n\t ]?{[\r\n\t ]+/s' => ',{',
             '/\),[\r\n\t ]+/s' => '),',
-            '~([\r\n\t ])?([a-zA-Z0-9]+)="([a-zA-Z0-9_/\\-]+)"([\r\n\t ])?~s' => '$1$2=$3$4',
+            '~([\r\n\t ])?([a-zA-Z0-9]+)="([a-zA-Z0-9_/\\-]+)"([\r\n\t ])?~s' => '$1$2=$3$4'
         );
-        $content = preg_replace(array_keys($replace) , array_values($replace) , $content);
+        $content = preg_replace(array_keys($replace), array_values($replace), $content);
         return $content;
     }
 
@@ -247,31 +210,24 @@ class SunCache
      *
      * @param string $content
      */
-    private function writeCache($content)
-    {
+    private function writeCache($content) {
         $cacheFile = fopen($this->cacheFile, 'w'); // open cache file with 'write' mode
         $content .= "<!-- Cache Duration: {$this->storageTime} s. -->"; // add storage time
         fwrite($cacheFile, $content); // write content into the cache file
         fclose($cacheFile); // close cache file
-        
     }
 
     /**
      * Delete all cached files
      */
-    public function emptyCache()
-    {
+    public function emptyCache() {
         $cacheDir = opendir($this->cacheDir); // open cache directory
-        while (($cacheFile = readdir($cacheDir)) !== false)
-        { // read cache directory
-            if (!is_dir($cacheFile))
-            { // if content is a file
+        while (($cacheFile = readdir($cacheDir)) !== false) { // read cache directory
+            if (!is_dir($cacheFile)) { // if content is a file
                 unlink($this->cacheDir . '/' . $cacheFile); // delete cached file
-                
             }
         }
         closedir($cacheDir); // close cache directory
-        
     }
 
     /**
@@ -279,27 +235,17 @@ class SunCache
      *
      * @param string|array $files
      */
-    public function deleteCache($files = null)
-    {
-        if (is_array($files) && count($files) > 0)
-        {
+    public function deleteCache($files = null) {
+        if (is_array($files) && count($files) > 0) {
             $fileArray = $files;
+        } else {
+            $fileArray = array($files);
         }
-        else
-        {
-            $fileArray = array(
-                $files
-            );
-        }
-        foreach ($fileArray as $file)
-        {
-            if (!empty($file))
-            {
+        foreach ($fileArray as $file) {
+            if (!empty($file)) {
                 $list = glob(dirname(__FILE__) . '/' . $this->cacheDir . '/*' . $file . '*.' . $this->fileExtension);
-                foreach ($list as $item)
-                {
+                foreach ($list as $item) {
                     unlink($item); // delete cached file
-                    
                 }
             }
         }
