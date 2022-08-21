@@ -107,7 +107,7 @@ Don't forget to send the file names (with `php` extension) in an array parameter
 This method deletes all cached files in the cache directory.
 
 ```php
-$cache = new SunCache(false);
+$cache = new SunCache(false, $config);
 $cache->emptyCache();
 ```
 
@@ -118,7 +118,7 @@ Don't forget to create a new object with `false` parameter.
 This method deletes a specific cached file in the cache directory.
 
 ```php
-$cache = new SunCache(false);
+$cache = new SunCache(false, $config);
 $cache->deleteCache('cachedFileName'); // file name (string)
 ```
 
@@ -131,7 +131,7 @@ You should send the file name (without extension) as a string parameter to the d
 This method deletes some specific cached files in the cache directory.
 
 ```php
-$cache = new SunCache(false);
+$cache = new SunCache(false, $config);
 $cache->deleteCache(['cachedFileName1', 'cachedFileName2', 'cachedFileName3']); // file names (array)
 ```
 
