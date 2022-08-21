@@ -1,8 +1,5 @@
 <?php
 
-//error_reporting(E_ALL);
-//ini_set('display_errors', TRUE);
-
 /**
  * SunCache Class
  *
@@ -12,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   2.3.0
+ * @version   2.4.0
  */
 
 class SunCache
@@ -151,6 +148,8 @@ class SunCache
                     ob_start(); // start caching
                 }
             }
+        } else {
+            $this->cacheDir = $cacheParams['cacheDir'];
         }
     }
 
@@ -212,22 +211,29 @@ class SunCache
      */
     private function writeCache($content) {
         $cacheFile = fopen($this->cacheFile, 'w'); // open cache file with 'write' mode
-        $content .= "<!-- Cache Duration: {$this->storageTime} s. -->"; // add storage time
+        $content .= "<!-- Cache Expiration: {$this->storageTime} s. -->"; // add storage time
         fwrite($cacheFile, $content); // write content into the cache file
         fclose($cacheFile); // close cache file
     }
 
     /**
      * Delete all cached files
+     * 
+     * @throws exception
      */
     public function emptyCache() {
-        $cacheDir = opendir($this->cacheDir); // open cache directory
-        while (($cacheFile = readdir($cacheDir)) !== false) { // read cache directory
-            if (!is_dir($cacheFile)) { // if content is a file
-                unlink($this->cacheDir . '/' . $cacheFile); // delete cached file
+        if (!file_exists($this->cacheDir)){
+            throw new Exception('Cache directory "'.$this->cacheDir.'" does not exist.');
+        } else {
+            $cacheDir = opendir($this->cacheDir); // open cache directory
+            while (($cacheFile = readdir($cacheDir)) !== false) { // read cache directory
+                if (!is_dir($cacheFile)) { // if content is a file
+                    unlink($this->cacheDir . '/' . $cacheFile); // delete cached file
+                }
             }
+            closedir($cacheDir); // close cache directory
         }
-        closedir($cacheDir); // close cache directory
+        
     }
 
     /**
