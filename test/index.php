@@ -34,21 +34,21 @@
 
     /*
     // Example for deleting all cached files (empty cache folder)
-    $cache = new SunCache(false);
+    $cache = new SunCache(false, $config);
     $cache->emptyCache();
     */
 
 
     /*
     // Example for deleting specific cached file
-    $cache = new SunCache(false);
+    $cache = new SunCache(false, $config);
     $cache->deleteCache('cachedFileName'); // write only file name (without extension)
     */
 
 
     /*
     // Example for deleting specific cached files
-    $cache = new SunCache(false);
+    $cache = new SunCache(false, $config);
     $cache->deleteCache(['cachedFileName1', 'cachedFileName2', 'cachedFileName3']); // write only file names in an array (without extension)
     */
 ?>
@@ -64,5 +64,7 @@
     <h3>Welcome to SunCache Default Page!</h3>
     <p>Uncomment the lines to see other examples.</p>
     <p><?php echo 'Dynamic Content: '.date('H:i:s'); ?></p>
+    <p><?php echo 'Memory Usage: '.$sitemap->memoryUsage().' mb.'; ?></p>
+    <p><?php echo 'Page Loading Duration: '.$sitemap->showDuration().' s.'; ?></p>
   </body>
 </html>
