@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   2.4.0
+ * @version   2.4.1
  */
 
 class SunCache
@@ -227,7 +227,7 @@ class SunCache
         } else {
             $cacheDir = opendir($this->cacheDir); // open cache directory
             while (($cacheFile = readdir($cacheDir)) !== false) { // read cache directory
-                if (!is_dir($cacheFile)) { // if content is a file
+                if (!is_dir($cacheFile) && $cacheFile != '.htaccess') { // if content is a file
                     unlink($this->cacheDir . '/' . $cacheFile); // delete cached file
                 }
             }
