@@ -18,7 +18,7 @@ SunCache is a simple, fast, and powerful PHP dynamic cache class that uses the f
 
 ### Installation
 
-Download all files (except Test directory) and change the htaccess.txt file's name to the .htaccess (important)
+Download all files (except Test directory), change the htaccess.txt file's name to the .htaccess (important), and move it to your cache directory.
 
 To utilize this class, first import SunCache.php into your project, and require it.
 SunCache requires PHP 5.5+ to work.
