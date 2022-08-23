@@ -150,6 +150,7 @@ class SunCache
             }
         } else {
             $this->cacheDir = $cacheParams['cacheDir'];
+            $this->fileExtension = $cacheParams['fileExtension'];
         }
     }
 
