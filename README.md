@@ -139,4 +139,4 @@ $cache->deleteCache(['cachedFileName1', 'cachedFileName2', 'cachedFileName3']); 
 
 Don't forget to create a new object with `false` parameter.
 
-You should send all file names (without extensions) as an array parameter to the delete method.
+You should send all file names (without extensions) as an array parameter to the delete method. If you send `filename` as a file name, the class will delete all files containing `filename` term (ex. filename, filename1, filename_xxx, xxx_filename_yyy, etc.).
