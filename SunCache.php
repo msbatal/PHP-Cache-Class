@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   2.4.1
+ * @version   3.0.0
  */
 
 class SunCache
@@ -99,7 +99,7 @@ class SunCache
      */
     public function __construct($cacheSystem = true, $cacheParams = null) {
         set_exception_handler(function ($exception) {
-            echo '<b>[SunCache] Exception:</b> ' . $exception->getMessage();
+            echo '<b>[SunClass] Exception:</b> ' . $exception->getMessage();
         });
         $this->cacheSystem = $cacheSystem;
         if ($this->cacheSystem == true) { // if cache system enabled
@@ -112,6 +112,7 @@ class SunCache
                         $this->$key = $this->cacheParams[$key];
                     }
                 }
+                $this->htaccess();
             }
             if (is_array($this->excludeFiles) && count($this->excludeFiles) > 0) {
                 $activePage = explode('/', $_SERVER['SCRIPT_FILENAME']); // get the active page
@@ -138,9 +139,14 @@ class SunCache
                 $file = basename($_SERVER['REQUEST_URI'], $extension);
                 $this->cacheFile = dirname(__FILE__) . '/' . $this->cacheDir . '/' . $file . '_' . substr(md5($_SERVER['REQUEST_URI']), 0, 6) . '.' . $this->fileExtension; // define the cache file
                 if (time() - $this->storageTime < @filemtime($this->cacheFile)) { // if the storage time has not expired
-                    readfile($this->cacheFile); // read cached file
-                    $this->cacheStatus = true; // page cached
-                    die();
+                    if (filesize($this->cacheFile) > 0) { // if not cache file empty
+                        readfile($this->cacheFile); // read cached file
+                        $this->cacheStatus = true; // page cached
+                        ob_end_flush(); // clear output buffer
+                        exit();
+                    } else {
+                        unlink($this->cacheFile); // delete cached file
+                    }
                 } else { // if the storage time has expired
                     if (file_exists($this->cacheFile)) { // if cache file exists
                         unlink($this->cacheFile); // delete cached file
@@ -151,6 +157,7 @@ class SunCache
         } else {
             $this->cacheDir = $cacheParams['cacheDir'];
             $this->fileExtension = $cacheParams['fileExtension'];
+            $this->htaccess();
         }
     }
 
@@ -158,23 +165,30 @@ class SunCache
      * Finish Caching
      */
     public function __destruct() {
-        if ($this->cacheSystem == true) { // if cache system enabled
-            if ($this->willCache == true) { // if page will cache
-                if ($this->cacheStatus == false) { // if page not cached before
-                    if ($this->contentMinify) { // if request to minify page
-                        $this->writeCache($this->minify(ob_get_contents())); // minify content and write into the cache file
-                    } else {
-                        $this->writeCache(ob_get_contents()); // write content into the cache file
-                    }
+        if ($this->cacheSystem == true && $this->willCache == true) { // if cache system enabled and page will cache
+            if ($this->cacheStatus == false) { // if page not cached before
+                $content = ob_get_contents();
+                if (!empty(trim($content))) { // if content not empty
+                    $this->writeCache($this->contentMinify ? $this->minify($content) : $content); // write content into the cache file
                 }
-                if ($this->showTime) { // if request to show time (bottom of the cached file, hidden)
-                    list($time[1], $time[0]) = explode(' ', microtime());
-                    $finish = $time[1] + $time[0];
-                    $duration = number_format(($finish - $this->startTime), 6);
-                    echo "<!-- Load Duration: {$duration} s. -->"; // add description
-                }
-                ob_end_flush(); // finish caching
             }
+            if ($this->showTime) { // if request to show time (bottom of the cached file, hidden)
+                list($time[1], $time[0]) = explode(' ', microtime());
+                $finish = $time[1] + $time[0];
+                $duration = number_format(($finish - $this->startTime), 6);
+                echo "<!-- Load Duration: {$duration} s. -->"; // add description
+            }
+            ob_end_flush(); // finish caching
+        }
+    }
+
+    /**
+     * Create htaccess file
+     */
+    private function htaccess() {
+        $htaccessFile = dirname(__FILE__) . '/' . $this->cacheDir . '/.htaccess';
+        if (!file_exists($htaccessFile)) { // if htaccess file not exists
+            file_put_contents($htaccessFile, "order allow,deny\ndeny from all\nOptions All -Indexes"); // create htaccess file
         }
     }
 
@@ -211,7 +225,13 @@ class SunCache
      * @param string $content
      */
     private function writeCache($content) {
+        if (empty(trim($content))) {
+            return; // prevent writing empty content
+        }
         $cacheFile = fopen($this->cacheFile, 'w'); // open cache file with 'write' mode
+        if ($cacheFile == false) {
+            throw new Exception('Cache file "'.$this->cacheFile.'" cannot be opened.');
+        }
         $content .= "<!-- Cache Expiration: {$this->storageTime} s. -->"; // add storage time
         fwrite($cacheFile, $content); // write content into the cache file
         fclose($cacheFile); // close cache file
@@ -234,7 +254,6 @@ class SunCache
             }
             closedir($cacheDir); // close cache directory
         }
-        
     }
 
     /**
