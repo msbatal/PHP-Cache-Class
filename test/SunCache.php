@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.0.0
+ * @version   4.1.0
  */
 
 class SunCache
@@ -262,14 +262,31 @@ class SunCache
      * @return string
      */
     private function minify($content = null): string {
-        $replace = array(
-            '/\>[^\S ]+/s' => '>',
-            '/[^\S ]+\</s' => '<',
-            '/([\t ])+/s' => ' ',
-            '/^([\t ])+/m' => '',
-            '/([\t ])+$/m' => '',
-            '~//[a-zA-Z0-9 ]+$~m' => '',
-            '/[\r\n]+([\t ]?[\r\n]+)+/s' => "\n",
+        preg_match_all('#<script\b[^>]*>.*?</script>#is', $content, $scripts); // temporarily replace <script> blocks
+        preg_match_all('#<style\b[^>]*>.*?</style>#is', $content, $styles); // temporarily replace <style> blocks
+        $placeholders = [];
+        if (!empty($scripts[0])) {
+            foreach ($scripts[0] as $i => $script) {
+                $placeholder = "__SCRIPT_PLACEHOLDER_{$i}__";
+                $placeholders[$placeholder] = $script; // placeholders for <script> blocks
+                $content = str_replace($script, $placeholder, $content);
+            }
+        }
+        if (!empty($styles[0])) {
+            foreach ($styles[0] as $i => $style) {
+                $placeholder = "__STYLE_PLACEHOLDER_{$i}__";
+                $placeholders[$placeholder] = $style; // placeholders for <style> blocks
+                $content = str_replace($style, $placeholder, $content);
+            }
+        }
+        $replace = [
+            '/\>[^\S\r\n]+/s' => '>',
+            '/[^\S\r\n]+\</s' => '<',
+            '/\s{2,}/s' => ' ',
+            '/\t+/s' => '',
+            '/\n{2,}/s' => "\n",
+            '/^\s+|\s+$/m' => '',
+            '/<!--(.|\s)*?-->/' => '',
             '/\>[\r\n\t ]+\</s' => '><',
             '/}[\r\n\t ]+/s' => '}',
             '/}[\r\n\t ]+,[\r\n\t ]+/s' => '},',
@@ -277,8 +294,11 @@ class SunCache
             '/,[\r\n\t ]?{[\r\n\t ]+/s' => ',{',
             '/\),[\r\n\t ]+/s' => '),',
             '~([\r\n\t ])?([a-zA-Z0-9]+)="([a-zA-Z0-9_/\\-]+)"([\r\n\t ])?~s' => '$1$2=$3$4'
-        );
+        ];
         $content = preg_replace(array_keys($replace), array_values($replace), $content);
+        foreach ($placeholders as $ph => $original) {
+            $content = str_replace($ph, $original, $content); // replace placeholders with old content
+        }
         return $content;
     }
 
