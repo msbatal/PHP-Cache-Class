@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   3.0.0
+ * @version   4.0.0
  */
 
 class SunCache
@@ -19,7 +19,7 @@ class SunCache
      * Cache credentials
      * @var array
      */
-    private $cacheParams = [];
+    private $params = [];
 
     /**
      * Cache system (enabled or disabled)
@@ -95,24 +95,26 @@ class SunCache
 
     /**
      * @param boolean $cacheSystem
-     * @param array $cacheParams
+     * @param array $defaultParams
+     * @param array $customParams
      */
-    public function __construct($cacheSystem = true, $cacheParams = null) {
+    public function __construct($cacheSystem = true, $defaultParams = [], $customParams = []) {
         set_exception_handler(function ($exception) {
             echo '<b>[SunClass] Exception:</b> ' . $exception->getMessage();
         });
         $this->cacheSystem = $cacheSystem;
+        $params = array_merge($defaultParams, $customParams);
         if ($this->cacheSystem == true) { // if cache system enabled
-            if (is_array($cacheParams)) { // cache files using parameters in the array
-                foreach ($cacheParams as $key => $value) {
-                    $this->cacheParams[$key] = $value;
+            if (is_array($params)) { // cache files using parameters in the array
+                foreach ($params as $key => $value) {
+                    $this->params[$key] = $value;
                     if (isset($key) && !is_null($value)) {
                         $this->$key = $value;
                     } else {
-                        $this->$key = $this->cacheParams[$key];
+                        $this->$key = $this->params[$key];
                     }
                 }
-                $this->htaccess();
+                $this->htaccess(); // create htaccess file
             }
             if (is_array($this->excludeFiles) && count($this->excludeFiles) > 0) {
                 $activePage = explode('/', $_SERVER['SCRIPT_FILENAME']); // get the active page
@@ -123,6 +125,15 @@ class SunCache
                     }
                 }
             }
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $this->willCache = false; // disable caching if post request is made
+            }
+            if (php_sapi_name() === 'cli') {
+                $this->willCache = false; // disable caching in cli (terminal) environment
+            }
+            if (!in_array(strtolower(pathinfo($_SERVER['SCRIPT_NAME'])['extension'] ?? ''), ['php', 'html'])) {
+                $this->willCache = false; // disable caching if file is not php or html
+            }
             if ($this->willCache == true) { // if the active page will cache
                 if (!file_exists(dirname(__FILE__) . '/' . $this->cacheDir)) {
                     mkdir(dirname(__FILE__) . '/' . $this->cacheDir, 0777); // create directory if not exists
@@ -131,33 +142,15 @@ class SunCache
                     list($time[1], $time[0]) = explode(' ', microtime());
                     $this->startTime = $time[1] + $time[0];
                 }
-                if ($this->sefUrl == true) { // if website uses sef url
-                    $extension = '.html';
-                } else {
-                    $extension = '.php';
-                }
-                $file = basename($_SERVER['REQUEST_URI'], $extension);
-                $this->cacheFile = dirname(__FILE__) . '/' . $this->cacheDir . '/' . $file . '_' . substr(md5($_SERVER['REQUEST_URI']), 0, 6) . '.' . $this->fileExtension; // define the cache file
-                if (time() - $this->storageTime < @filemtime($this->cacheFile)) { // if the storage time has not expired
-                    if (filesize($this->cacheFile) > 0) { // if not cache file empty
-                        readfile($this->cacheFile); // read cached file
-                        $this->cacheStatus = true; // page cached
-                        ob_end_flush(); // clear output buffer
-                        exit();
-                    } else {
-                        unlink($this->cacheFile); // delete cached file
-                    }
-                } else { // if the storage time has expired
-                    if (file_exists($this->cacheFile)) { // if cache file exists
-                        unlink($this->cacheFile); // delete cached file
-                    }
-                    ob_start(); // start caching
-                }
+                list($file, $normalizedUri) = $this->normalizeUri(); // normalize the uri
+                $hash = substr(md5($normalizedUri), 0, 6); // create hash
+                $this->cacheFile = dirname(__FILE__) . '/' . $this->cacheDir . '/' . $file . '_' . $hash . '.' . $this->fileExtension; // define the cache file
+                $this->readCache(); // read cached file
             }
         } else {
-            $this->cacheDir = $cacheParams['cacheDir'];
-            $this->fileExtension = $cacheParams['fileExtension'];
-            $this->htaccess();
+            $this->cacheDir = $params['cacheDir'];
+            $this->fileExtension = $params['fileExtension'];
+            $this->htaccess(); // create htaccess file
         }
     }
 
@@ -183,40 +176,25 @@ class SunCache
     }
 
     /**
-     * Create htaccess file
+     * Read cached file
      */
-    private function htaccess() {
-        $htaccessFile = dirname(__FILE__) . '/' . $this->cacheDir . '/.htaccess';
-        if (!file_exists($htaccessFile)) { // if htaccess file not exists
-            file_put_contents($htaccessFile, "order allow,deny\ndeny from all\nOptions All -Indexes"); // create htaccess file
+    private function readCache() {
+        if (time() - $this->storageTime < @filemtime($this->cacheFile)) { // if the storage time has not expired
+            if (filesize($this->cacheFile) > 0) { // if not cache file empty
+                $this->browserCaching(); // call browser caching method
+                readfile($this->cacheFile); // read cached file
+                $this->cacheStatus = true; // page cached
+                ob_end_flush(); // clear output buffer
+                exit();
+            } else {
+                unlink($this->cacheFile); // delete cached file
+            }
+        } else { // if the storage time has expired
+            if (file_exists($this->cacheFile)) { // if cache file exists
+                unlink($this->cacheFile); // delete cached file
+            }
+            ob_start(); // start caching
         }
-    }
-
-    /**
-     * Minify the page
-     *
-     * @param string $content
-     * @return string
-     */
-    private function minify($content = null) {
-        $replace = array(
-            '/\>[^\S ]+/s' => '>',
-            '/[^\S ]+\</s' => '<',
-            '/([\t ])+/s' => ' ',
-            '/^([\t ])+/m' => '',
-            '/([\t ])+$/m' => '',
-            '~//[a-zA-Z0-9 ]+$~m' => '',
-            '/[\r\n]+([\t ]?[\r\n]+)+/s' => "\n",
-            '/\>[\r\n\t ]+\</s' => '><',
-            '/}[\r\n\t ]+/s' => '}',
-            '/}[\r\n\t ]+,[\r\n\t ]+/s' => '},',
-            '/\)[\r\n\t ]?{[\r\n\t ]+/s' => '){',
-            '/,[\r\n\t ]?{[\r\n\t ]+/s' => ',{',
-            '/\),[\r\n\t ]+/s' => '),',
-            '~([\r\n\t ])?([a-zA-Z0-9]+)="([a-zA-Z0-9_/\\-]+)"([\r\n\t ])?~s' => '$1$2=$3$4'
-        );
-        $content = preg_replace(array_keys($replace), array_values($replace), $content);
-        return $content;
     }
 
     /**
@@ -235,6 +213,27 @@ class SunCache
         $content .= "<!-- Cache Expiration: {$this->storageTime} s. -->"; // add storage time
         fwrite($cacheFile, $content); // write content into the cache file
         fclose($cacheFile); // close cache file
+    }
+
+    /**
+     * Delete cached file(s)
+     *
+     * @param string|array $files
+     */
+    public function deleteCache($files = null) {
+        if (is_array($files) && count($files) > 0) {
+            $fileArray = $files;
+        } else {
+            $fileArray = array($files);
+        }
+        foreach ($fileArray as $file) {
+            if (!empty($file)) {
+                $list = glob(dirname(__FILE__) . '/' . $this->cacheDir . '/*' . $file . '*.' . $this->fileExtension);
+                foreach ($list as $item) {
+                    unlink($item); // delete cached file
+                }
+            }
+        }
     }
 
     /**
@@ -257,23 +256,80 @@ class SunCache
     }
 
     /**
-     * Delete cached file(s)
+     * Minify the page
      *
-     * @param string|array $files
+     * @param string $content
+     * @return string
      */
-    public function deleteCache($files = null) {
-        if (is_array($files) && count($files) > 0) {
-            $fileArray = $files;
-        } else {
-            $fileArray = array($files);
+    private function minify($content = null): string {
+        $replace = array(
+            '/\>[^\S ]+/s' => '>',
+            '/[^\S ]+\</s' => '<',
+            '/([\t ])+/s' => ' ',
+            '/^([\t ])+/m' => '',
+            '/([\t ])+$/m' => '',
+            '~//[a-zA-Z0-9 ]+$~m' => '',
+            '/[\r\n]+([\t ]?[\r\n]+)+/s' => "\n",
+            '/\>[\r\n\t ]+\</s' => '><',
+            '/}[\r\n\t ]+/s' => '}',
+            '/}[\r\n\t ]+,[\r\n\t ]+/s' => '},',
+            '/\)[\r\n\t ]?{[\r\n\t ]+/s' => '){',
+            '/,[\r\n\t ]?{[\r\n\t ]+/s' => ',{',
+            '/\),[\r\n\t ]+/s' => '),',
+            '~([\r\n\t ])?([a-zA-Z0-9]+)="([a-zA-Z0-9_/\\-]+)"([\r\n\t ])?~s' => '$1$2=$3$4'
+        );
+        $content = preg_replace(array_keys($replace), array_values($replace), $content);
+        return $content;
+    }
+
+    /**
+     * Normalize the uri
+     *
+     * @return array
+     */
+    private function normalizeUri(): array {
+        $extension = $this->sefUrl ? '.html' : '.php';
+        $requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $queryString = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY);
+        if (preg_match("#/(index\.(html|php))$#", $requestPath)) { // if index.html or index.php exists
+            $requestPath = dirname($requestPath); // drop to base path
         }
-        foreach ($fileArray as $file) {
-            if (!empty($file)) {
-                $list = glob(dirname(__FILE__) . '/' . $this->cacheDir . '/*' . $file . '*.' . $this->fileExtension);
-                foreach ($list as $item) {
-                    unlink($item); // delete cached file
-                }
-            }
+        if (substr($requestPath, -strlen($extension)) === $extension) {
+            $requestPath = substr($requestPath, 0, -strlen($extension)); // remove extension
+        }
+        $segments = array_filter(explode('/', trim($requestPath, '/'))); // prepare segments
+        $file = implode('_', $segments); // add underscore
+        $file = $file ?: 'index'; // fallback for main page
+        $normalizedUri = $requestPath; // generate normalized URI
+        if ($queryString) {
+            $normalizedUri .= '?' . $queryString; // add query strings
+        }
+        return [$file, $normalizedUri];
+    }
+
+    /**
+     * Activate browser caching
+     */
+    private function browserCaching() {
+        header("Cache-Control: public, max-age=".$this->storageTime.", must-revalidate"); // send cache-control header
+        header("Pragma: cache"); // send pragma header
+        $etag = md5_file($this->cacheFile); // create and hash etag value
+        $lastModified = filemtime($this->cacheFile); // get last modified time
+        header("ETag: \"$etag\""); // send etag header
+        header("Last-Modified: " . gmdate("D, d M Y H:i:s", $lastModified) . " GMT"); // send last-modified header
+        if ((isset($_SERVER['HTTP_IF_NONE_MATCH']) && trim($_SERVER['HTTP_IF_NONE_MATCH']) === "\"$etag\"") || (isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) && strtotime($_SERVER['HTTP_IF_MODIFIED_SINCE']) === $lastModified)) { // if content hasn't changed
+            header("HTTP/1.1 304 Not Modified");
+            exit;
+        }
+    }
+
+    /**
+     * Create htaccess file
+     */
+    private function htaccess() {
+        $htaccessFile = dirname(__FILE__) . '/' . $this->cacheDir . '/.htaccess';
+        if (!file_exists($htaccessFile)) { // if htaccess file not exists
+            file_put_contents($htaccessFile, "order allow,deny\ndeny from all\nOptions All -Indexes"); // create htaccess file
         }
     }
 
