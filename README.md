@@ -20,7 +20,7 @@ SunCache is a simple, fast, and powerful PHP dynamic cache class that uses the f
 
 Download all files (except Test directory), change the htaccess.txt file's name to the .htaccess, and move it to your cache directory. Htaccess file will be created automatically if it does not exist.
 
-To utilize this class, first import SunCache.php into your project and require it.
+To utilize this class, first import SunCache.php into your project, and require it.
 SunCache requires PHP 5.5+ to work.
 
 ```php
@@ -126,7 +126,14 @@ $cache->deleteCache('cachedFileName'); // file name (string)
 
 Don't forget to create a new object with `false` parameter.
 
-You should send the file name (without extension) as a string parameter to the delete method.
+You should send the file name (without extension and underscore, for example: use `blog` instead of `blog_cd12f5.scf`) as a string parameter to the delete method.
+
+If you send `test` as a file name, the class will delete all files containing `test` term (ex. test, test123, test_xxx, xxx_test_yyy, etc.).
+
+```php
+$cache->deleteCache('news'); // will be deleted all files contain 'news' term => xxx_news_yyy.zzz
+$cache->deleteCache('blog'); // will be deleted all files contain 'blog' term => xxx_blog_yyy.zzz
+```
 
 ### Delete Specific Cached Files
 
@@ -139,4 +146,8 @@ $cache->deleteCache(['cachedFileName1', 'cachedFileName2', 'cachedFileName3']); 
 
 Don't forget to create a new object with `false` parameter.
 
-You should send all file names (without extensions) as an array parameter to the delete method. If you send `filename` as a file name, the class will delete all files containing `filename` term (ex. filename, filename1, filename_xxx, xxx_filename_yyy, etc.).
+You should send all file names (without extension and underscore) as an array parameter to the delete method. If you send `test` as a file name, the class will delete all files containing `test` term (ex. test, test123, test_xxx, xxx_test_yyy, etc.).
+
+```php
+$cache->deleteCache(['news', 'blog']); // will be deleted all files contain 'news' or 'blog' terms => xxx_news_yyy.zzz // xxx_blog_yyy.zzz
+```
