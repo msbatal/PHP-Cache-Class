@@ -2,6 +2,8 @@
 
 SunCache is a simple, fast, and powerful PHP dynamic cache class that uses the file system for caching.
 
+`Technical Document:` https://deepwiki.com/msbatal/PHP-Cache-Class
+
 <hr>
 
 ### Table of Contents
