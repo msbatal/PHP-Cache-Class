@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.1.0
+ * @version   4.2.0
  */
 
 class SunCache
@@ -280,8 +280,9 @@ class SunCache
             }
         }
         $replace = [
-            '/\>[^\S\r\n]+/s' => '>',
-            '/[^\S\r\n]+\</s' => '<',
+            '/\>\s+(?=\<)/s' => '>',
+            '/\>\s+(?=[^\<])/s' => '> ',
+            '/([^\>])\s+\</s' => '$1 <',
             '/\s{2,}/s' => ' ',
             '/\t+/s' => '',
             '/\n{2,}/s' => "\n",
