@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.2.0
+ * @version   4.2.1
  */
 
 class SunCache
@@ -135,6 +135,9 @@ class SunCache
                 $this->willCache = false; // disable caching if file is not php or html
             }
             if ($this->willCache == true) { // if the active page will cache
+                if (!file_exists($_SERVER['SCRIPT_FILENAME'])) {
+                    $this->willCache = false; // disable caching if file not exists
+                }
                 if (!file_exists(dirname(__FILE__) . '/' . $this->cacheDir)) {
                     mkdir(dirname(__FILE__) . '/' . $this->cacheDir, 0777); // create directory if not exists
                 }
