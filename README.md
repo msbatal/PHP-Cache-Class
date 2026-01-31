@@ -2,7 +2,9 @@
 
 SunCache is a simple, fast, and powerful PHP dynamic cache class that uses the file system for caching.
 
-`Technical Document:` https://deepwiki.com/msbatal/PHP-Cache-Class
+`Technical Document:` https://www.deepwiki.com/msbatal/PHP-Cache-Class
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/msbatal/PHP-Cache-Class)
 
 <hr>
 
