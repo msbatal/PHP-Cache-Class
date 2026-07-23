@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.2.1
+ * @version   4.2.2
  */
 
 class SunCache
@@ -139,7 +139,7 @@ class SunCache
                     $this->willCache = false; // disable caching if file not exists
                 }
                 if (!file_exists(dirname(__FILE__) . '/' . $this->cacheDir)) {
-                    mkdir(dirname(__FILE__) . '/' . $this->cacheDir, 0777); // create directory if not exists
+                    mkdir(dirname(__FILE__) . '/' . $this->cacheDir, 0755); // create directory if not exists
                 }
                 if ($this->showTime) { // if load time will show on the bottom of the page (hidden)
                     list($time[1], $time[0]) = explode(' ', microtime());
