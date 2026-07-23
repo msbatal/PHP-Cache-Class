@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.2.2
+ * @version   4.2.3
  */
 
 class SunCache
@@ -245,13 +245,14 @@ class SunCache
      * @throws exception
      */
     public function emptyCache() {
-        if (!file_exists($this->cacheDir)){
+        $cacheDirPath = dirname(__FILE__) . '/' . $this->cacheDir; // same base path htaccess()/deleteCache() use
+        if (!file_exists($cacheDirPath)){
             throw new Exception('Cache directory "'.$this->cacheDir.'" does not exist.');
         } else {
-            $cacheDir = opendir($this->cacheDir); // open cache directory
+            $cacheDir = opendir($cacheDirPath); // open cache directory
             while (($cacheFile = readdir($cacheDir)) !== false) { // read cache directory
                 if (!is_dir($cacheFile) && $cacheFile != '.htaccess') { // if content is a file
-                    unlink($this->cacheDir . '/' . $cacheFile); // delete cached file
+                    unlink($cacheDirPath . '/' . $cacheFile); // delete cached file
                 }
             }
             closedir($cacheDir); // close cache directory
