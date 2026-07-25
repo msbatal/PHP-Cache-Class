@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.2.3
+ * @version   4.2.4
  */
 
 class SunCache
@@ -99,9 +99,6 @@ class SunCache
      * @param array $customParams
      */
     public function __construct($cacheSystem = true, $defaultParams = [], $customParams = []) {
-        set_exception_handler(function ($exception) {
-            echo '<b>[SunClass] Exception:</b> ' . $exception->getMessage();
-        });
         $this->cacheSystem = $cacheSystem;
         $params = array_merge($defaultParams, $customParams);
         if ($this->cacheSystem == true) { // if cache system enabled
