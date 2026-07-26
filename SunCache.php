@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.2.4
+ * @version   4.2.5
  */
 
 class SunCache
@@ -349,7 +349,11 @@ class SunCache
      * Create htaccess file
      */
     private function htaccess() {
-        $htaccessFile = dirname(__FILE__) . '/' . $this->cacheDir . '/.htaccess';
+        $cacheDirPath = dirname(__FILE__) . '/' . $this->cacheDir;
+        if (!file_exists($cacheDirPath)) {
+            mkdir($cacheDirPath, 0777, true); // ensure the directory exists before writing into it
+        }
+        $htaccessFile = $cacheDirPath . '/.htaccess';
         if (!file_exists($htaccessFile)) { // if htaccess file not exists
             file_put_contents($htaccessFile, "order allow,deny\ndeny from all\nOptions All -Indexes"); // create htaccess file
         }
