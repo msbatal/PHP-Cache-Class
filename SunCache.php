@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.2.5
+ * @version   4.2.6
  */
 
 class SunCache
@@ -294,7 +294,7 @@ class SunCache
             '/}[\r\n\t ]+,[\r\n\t ]+/s' => '},',
             '/\)[\r\n\t ]?{[\r\n\t ]+/s' => '){',
             '/,[\r\n\t ]?{[\r\n\t ]+/s' => ',{',
-            '/\),[\r\n\t ]+/s' => '),',
+            '/\),[\r\n\t ]+/s' => '), ',
             '~([\r\n\t ])?([a-zA-Z0-9]+)="([a-zA-Z0-9_/\\-]+)"([\r\n\t ])?~s' => '$1$2=$3$4'
         ];
         $content = preg_replace(array_keys($replace), array_values($replace), $content);
