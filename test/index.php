@@ -10,7 +10,7 @@
         'contentMinify' => true, // cahe content minification
         'showTime'      => true, // show page load time
         'sefUrl'        => false, // website sef url status
-        'varyCookies'   => ['cookie1', 'cookie2'] // Cache with cookie variants
+        'varyCookies'   => ['cookie1' => ['value1', 'value2', 'value3'], 'cookie2' => ['value1', 'value2'], 'cookie3'] // Cache with cookie variants
     ];
 
     $cache = new SunCache(true, $config); // Cache files using parameters in an external array
