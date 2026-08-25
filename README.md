@@ -126,6 +126,14 @@ $cache = new SunCache(true, ['varyCookies' => ['lang', 'currency']]);
 
 **Rule of thumb:** only add a cookie here if the number of values it can take stays small and fixed no matter how many visitors your site gets; a language code, a currency, an A/B test group, and similar. If a cookie's value is unique per visitor (a session ID, a "logged in" flag tied to a specific account, a user ID) don't put it in `varyCookies`; it would create one cached file per visitor and the cache directory would just keep growing without ever being reused. For that kind of per-visitor state, add the file to `excludeFiles` instead, or keep the personalized part out of the cached HTML entirely and fill it in on the client side (e.g., with a small script reading `localStorage` or making its own request).
 
+**Restrict variants to known values (recommended for cookies a visitor can set):** the plain form above trusts whatever value the cookie carries. Since request cookies are fully attacker-controlled, someone could send thousands of made-up `lang` values just to make the class write a new cache file for each one, filling up your disk. Give a cookie name an array of allowed values instead of listing it as a plain string, and any value outside that list collapses into a single shared "other" bucket instead of creating a new variant:
+
+```php
+$cache = new SunCache(true, ['varyCookies' => ['lang' => ['en', 'es', 'fr', 'de']]]);
+```
+
+Plain cookie names (no allow-list) still work and are fine for cookies your own server sets and controls; just know that an unrestricted cookie name accepts any value up to a short length cap.
+
 ```php
 $cache = new SunCache(true, ['excludeFiles' => ['account.php', 'cart.php']]); // personalized pages: don't cache at all
 ```
