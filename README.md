@@ -16,6 +16,7 @@ SunCache is a simple, fast, and powerful PHP dynamic cache class that uses the f
 - **[Caching with Minified Content](#caching-with-minified-content)**
 - **[Caching with SEF URL](#caching-with-sef-url)**
 - **[Exclude Some Files from Caching](#exclude-some-files-from-caching)**
+- **[Caching with Cookie Variants](#caching-with-cookie-variants)**
 - **[Delete All Cached Files](#delete-all-cached-files)**
 - **[Delete a Specific Cached File](#delete-a-specific-cached-file)**
 - **[Delete Specific Cached Files](#delete-specific-cached-files)**
@@ -47,6 +48,7 @@ $config = [
     'fileExtension' => 'scf', // cache file extension
     'storageTime'   => 24*60*60, // cache storage time (seconds)
     'excludeFiles'  => ['file1.php', 'file2.php'], // exclude files from caching (with extensions)
+    'varyCookies'   => ['lang'], // cookie names that make the cache vary (a separate file per value)
     'contentMinify' => true, // cahe content minification
     'showTime'      => true, // show page load time
     'sefUrl'        => false // website sef url status
@@ -107,6 +109,26 @@ $cache = new SunCache(true, ['excludeFiles'  => ['file1.php', 'file2.php']]);
 ```
 
 Don't forget to send the file names (with `php` extension) in an array parameter.
+
+### Caching with Cookie Variants
+
+Some pages render different content depending on a cookie value, but caching by URL alone would serve that same cached copy to every visitor regardless of their own cookie. For example, a multi-language site where the language is stored in a cookie instead of the URL. `varyCookies` fixes this: give it a list of cookie names, and the class stores a separate cached file for each distinct combination of their values.
+
+```php
+$cache = new SunCache(true, ['varyCookies' => ['lang']]);
+```
+
+With this, a visitor whose `lang` cookie is `en` gets a different cached file than one whose `lang` cookie is `fr`, even though both requested the exact same URL. You can combine multiple cookies too:
+
+```php
+$cache = new SunCache(true, ['varyCookies' => ['lang', 'currency']]);
+```
+
+**Rule of thumb:** only add a cookie here if the number of values it can take stays small and fixed no matter how many visitors your site gets; a language code, a currency, an A/B test group, and similar. If a cookie's value is unique per visitor (a session ID, a "logged in" flag tied to a specific account, a user ID) don't put it in `varyCookies`; it would create one cached file per visitor and the cache directory would just keep growing without ever being reused. For that kind of per-visitor state, add the file to `excludeFiles` instead, or keep the personalized part out of the cached HTML entirely and fill it in on the client side (e.g., with a small script reading `localStorage` or making its own request).
+
+```php
+$cache = new SunCache(true, ['excludeFiles' => ['account.php', 'cart.php']]); // personalized pages: don't cache at all
+```
 
 ### Delete All Cached Files
 
