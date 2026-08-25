@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.3.1
+ * @version   4.4.0
  */
 
 class SunCache
@@ -56,6 +56,12 @@ class SunCache
      * @var array
      */
     private $excludeFiles = [];
+
+    /**
+     * Cookie names that make the cache vary
+     * @var array
+     */
+    private $varyCookies = [];
 
     /**
      * Cache status (will cache or not)
@@ -160,7 +166,7 @@ class SunCache
                     $this->startTime = $time[1] + $time[0];
                 }
                 list($file, $normalizedUri) = $this->normalizeUri(); // normalize the uri
-                $hash = substr(md5($normalizedUri), 0, 6); // create hash
+                $hash = substr(md5($normalizedUri . $this->varySuffix()), 0, 6); // create hash (includes vary-cookie values, if configured)
                 $this->cacheFile = dirname(__FILE__) . '/' . $this->cacheDir . '/' . $file . '_' . $hash . '.' . $this->fileExtension; // define the cache file
                 $this->readCache(); // read cached file
             }
@@ -322,6 +328,30 @@ class SunCache
             $content = str_replace($ph, $original, $content); // replace placeholders with old content
         }
         return $content;
+    }
+
+    /**
+     * Build a suffix from the configured vary-cookies' current values
+     *
+     * @return string
+     */
+    private function varySuffix(): string {
+        if (empty($this->varyCookies)) {
+            return '';
+        }
+        $parts = [];
+        foreach ($this->varyCookies as $key => $value) {
+            $isAllowList = !is_int($key);
+            $cookieName = $isAllowList ? $key : $value;
+            $cookieValue = (string) ($_COOKIE[$cookieName] ?? '');
+            if ($isAllowList && is_array($value)) {
+                $cookieValue = in_array($cookieValue, $value, true) ? $cookieValue : ''; // unknown values share one bucket
+            } else {
+                $cookieValue = substr($cookieValue, 0, 32); // generic length cap when no allow-list is given
+            }
+            $parts[] = $cookieName . '=' . $cookieValue;
+        }
+        return '|' . implode('&', $parts);
     }
 
     /**
