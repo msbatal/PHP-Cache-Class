@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.4.0
+ * @version   4.5.0
  */
 
 class SunCache
@@ -100,6 +100,20 @@ class SunCache
     private $sefUrl = false;
 
     /**
+     * Tracking-only query string parameters to always strip from the cache key
+     * (analytics/ad click ids that never change a page's actual content).
+     * Override or extend via the settings array if a site uses others.
+     * @var array
+     */
+    private $ignoreParams = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'utm_id', 'gclid', 'gclsrc', 'dclid', 'gbraid', 'wbraid', 'gad_source', 'fbclid', 'igshid', 'msclkid', 'ttclid', 'twclid', 'yclid', 'epik', 'mc_cid', 'mc_eid', '_hsenc', '_hsmi', 'ref', 'referrer', '_ga'];
+
+    /**
+     * Query string parameter allow-list for the cache key (empty = keep all except ignoreParams)
+     * @var array
+     */
+    private $queryParams = [];
+
+    /**
      * @param boolean $cacheSystem
      * @param array $defaultParams
      * @param array $customParams
@@ -145,8 +159,7 @@ class SunCache
             $requestExtension = pathinfo($requestPath, PATHINFO_EXTENSION);
             $nonPageExtensions = [
                 'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp', 'avif',
-                'css', 'js', 'mjs', 'map',
-                'txt', 'xml', 'json', 'csv', 'pdf',
+                'css', 'js', 'mjs', 'map', 'txt', 'xml', 'json', 'csv', 'pdf',
                 'woff', 'woff2', 'ttf', 'eot', 'otf',
                 'mp4', 'mp3', 'wav', 'ogg', 'webm', 'avi', 'mov',
                 'zip', 'rar', '7z', 'gz',
@@ -373,10 +386,35 @@ class SunCache
         $file = implode('_', $segments); // add underscore
         $file = $file ?: 'index'; // fallback for main page
         $normalizedUri = $requestPath; // generate normalized URI
-        if ($queryString) {
-            $normalizedUri .= '?' . $queryString; // add query strings
+        $normalizedQueryString = $this->normalizeQueryString((string) $queryString);
+        if ($normalizedQueryString !== '') {
+            $normalizedUri .= '?' . $normalizedQueryString; // add normalized query string
         }
         return [$file, $normalizedUri];
+    }
+
+    /**
+     * Normalize the query string
+     *
+     * @param string $queryString
+     * @return string
+     */
+    private function normalizeQueryString($queryString): string {
+        if ($queryString === '') {
+            return '';
+        }
+        parse_str($queryString, $queryArray);
+        if (is_array($this->ignoreParams) && count($this->ignoreParams) > 0) {
+            $queryArray = array_diff_key($queryArray, array_flip($this->ignoreParams)); // strip known tracking params
+        }
+        if (is_array($this->queryParams) && count($this->queryParams) > 0) {
+            $queryArray = array_intersect_key($queryArray, array_flip($this->queryParams)); // keep only allow-listed params
+        }
+        if (empty($queryArray)) {
+            return '';
+        }
+        ksort($queryArray); // order-independent (?a=1&b=2 === ?b=2&a=1)
+        return http_build_query($queryArray);
     }
 
     /**
