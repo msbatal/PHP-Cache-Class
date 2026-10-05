@@ -6,6 +6,7 @@
         'cacheDir'      => 'suncache', // cache folder path
         'fileExtension' => 'scf', // cache file extension
         'storageTime'   => 24*60*60, // cache storage time (seconds)
+        'browserMaxAge' => 60*60, // browser cache time (seconds)
         'excludeFiles'  => ['file1.php', 'file2.php'], // exclude files from caching (with extensions)
         'contentMinify' => true, // cahe content minification
         'showTime'      => true, // show page load time
