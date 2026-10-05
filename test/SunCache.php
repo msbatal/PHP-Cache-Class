@@ -9,7 +9,7 @@
  * @copyright Copyright (c) 2020, Sunhill Technology <www.sunhillint.com>
  * @license   https://opensource.org/licenses/lgpl-3.0.html The GNU Lesser General Public License, version 3.0
  * @link      https://github.com/msbatal/PHP-Cache-Class
- * @version   4.5.1
+ * @version   4.5.2
  */
 
 class SunCache
@@ -50,6 +50,12 @@ class SunCache
      * @var integer
      */
     private $storageTime = 24 * 60 * 60;
+
+    /**
+     * Browser cache time (seconds, null = same as storage time)
+     * @var integer
+     */
+    private $browserMaxAge = null;
 
     /**
      * Exclude files from caching (file_name.ext)
@@ -421,7 +427,7 @@ class SunCache
      * Activate browser caching
      */
     private function browserCaching() {
-        header("Cache-Control: public, max-age=".$this->storageTime.", must-revalidate"); // send cache-control header
+        header("Cache-Control: public, max-age=".(is_null($this->browserMaxAge) ? $this->storageTime : $this->browserMaxAge).", must-revalidate"); // send cache-control header
         header("Pragma: cache"); // send pragma header
         $etag = md5_file($this->cacheFile); // create and hash etag value
         $lastModified = filemtime($this->cacheFile); // get last modified time
